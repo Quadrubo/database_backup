@@ -6,7 +6,7 @@ from datetime import datetime
 
 JSON_FILE_NAME = 'containers.json'
 TMP_FOLDER = './tmp'
-OUTPUT_FOLDER = './output'
+OUTPUT_FOLDER = '/mnt/user/database_backups'
 
 with open(JSON_FILE_NAME, 'r') as f:
     container_json = json.load(f)["containers"]
