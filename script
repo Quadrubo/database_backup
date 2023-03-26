@@ -4,9 +4,9 @@ import os
 import json
 from datetime import datetime
 
-JSON_FILE_NAME = 'containers.json'
-TMP_FOLDER = './tmp'
-OUTPUT_FOLDER = '/mnt/user/database_backups'
+JSON_FILE_NAME = "/boot/config/plugins/user.scripts/scripts/database_backup/containers.json"
+TMP_FOLDER = "/boot/config/plugins/user.scripts/scripts/database_backup/tmp"
+OUTPUT_FOLDER = "/mnt/user/database_backups"
 
 with open(JSON_FILE_NAME, 'r') as f:
     container_json = json.load(f)["containers"]
@@ -52,6 +52,8 @@ def gzip_sql_files(files):
     p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     p.wait()
 
+    print(f"Database backup written to \"{OUTPUT_FOLDER}/{output_file_name}\".")
+
 for container in container_json:
     container_name = container["container_name"]
     database_type = container["database_type"]
@@ -65,5 +67,3 @@ for container in container_json:
         file_names.append(sql_file_name)
 
 gzip_sql_files(file_names)
-
-print(file_names)
