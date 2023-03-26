@@ -1,0 +1,14 @@
+{
+   "containers": [
+      {
+         "container_name": "my_mariadb_container",
+         "database_type": "mariadb",
+         "root_password": "very_secure_root_password"
+      },
+      {
+         "container_name": "my_postgres_container",
+         "database_type": "postgresql",
+         "root_password": "very_secure_root_password"
+      }
+   ]
+}
