@@ -6,7 +6,7 @@ from datetime import datetime
 
 JSON_FILE_NAME = "/boot/config/plugins/user.scripts/scripts/database_backup/containers.json"
 TMP_FOLDER = "/boot/config/plugins/user.scripts/scripts/database_backup/tmp"
-OUTPUT_FOLDER = "/mnt/user/backup/database"
+OUTPUT_FOLDER = "/mnt/user/backup/database_test"
 
 with open(JSON_FILE_NAME, 'r') as f:
     container_json = json.load(f)["containers"]
@@ -19,31 +19,6 @@ if not os.path.exists(OUTPUT_FOLDER):
 
 file_names = []
 
-def get_database_list_from_mysql(container_name, root_password):
-    command = f"echo 'show databases;' | docker exec -i {container_name} mysql --user=root --password={root_password} | grep -v Database | grep -v information_schema | grep -v mysql | grep -v performance_schema"
-
-    return subprocess.check_output(command, shell=True).decode("utf-8").splitlines()
-
-def get_database_list(container_name, database_type, root_password):
-    if database_type in ["mariadb"]:
-        return get_database_list_from_mysql(container_name, root_password)
-
-    raise ValueError(f"Unknown database type \"{database_type}\".")
-
-def dump_database_to_sql_from_mysql(container_name, root_password):
-    dump_command = f"docker exec {container_name} mysqldump -u root -p{root_password} {database} > {TMP_FOLDER}/{container_name}_{database}.sql"
-
-    sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-    sql_dumper.wait()
-
-    return f"{TMP_FOLDER}/{container_name}_{database}.sql"
-
-def dump_database_to_sql(container_name, database_type, root_password):
-    if database_type in ["mariadb"]:
-        return dump_database_to_sql_from_mysql(container_name, root_password)
-
-    raise ValueError(f"Unknown database type \"{database_type}\".")
-
 def gzip_sql_files(files):
     output_file_name = datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + "_db_backup.tar.gz"
 
@@ -54,16 +29,92 @@ def gzip_sql_files(files):
 
     print(f"Database backup written to \"{OUTPUT_FOLDER}/{output_file_name}\".")
 
+class Database:
+    def __init__(self, container_name) -> None:
+        self.container_name = container_name
+
+    def get_container_connection_string(self, interactive=False):
+        if interactive:
+            return f"docker exec -i {self.container_name}"
+        else:
+            return f"docker exec {self.container_name}"
+        
+    def dump(self):
+        raise NotImplementedError
+    
+class Mariadb(Database):
+    def __init__(self, container_name, user, password) -> None:
+        super().__init__(container_name)
+        self.user = user
+        self.password = password
+        self.databases = []
+
+    def get_dump_command(self, database_name):
+        return f"{super().get_container_connection_string()} mysqldump -u {self.user} -p{self.password} {database_name}"
+
+    def dump_to_file(self):
+        file_names = []
+
+        for database in self.databases:
+            dump_command = f"{self.get_dump_command(database)} > {TMP_FOLDER}/{self.container_name}_{database}.sql"
+
+            sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+            sql_dumper.wait()
+
+            file_names.append(f"{TMP_FOLDER}/{self.container_name}_{database}.sql")
+
+        return file_names
+
+    def fill_databases(self):
+        command = f"echo 'show databases;' | {super().get_container_connection_string(interactive=True)} mysql --user={self.user} --password={self.password} | grep -v Database | grep -v information_schema | grep -v mysql | grep -v performance_schema"
+
+        self.databases = subprocess.check_output(command, shell=True).decode("utf-8").splitlines()
+
+    def dump(self):
+        self.fill_databases()
+
+        file_names = self.dump_to_file()
+
+        return file_names
+
+class Postgresql(Database):
+    def __init__(self, container_name, user) -> None:
+        super().__init__(container_name)  
+        self.user = user
+
+    def get_dump_command(self):
+        return f"{super().get_container_connection_string()} pg_dumpall -c -U {self.user}"
+
+    def dump_to_file(self):
+        dump_command = f"{self.get_dump_command()} > {TMP_FOLDER}/{self.container_name}.sql"
+
+        sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+        sql_dumper.wait()
+
+        return f"{TMP_FOLDER}/{self.container_name}.sql"
+
+    def dump(self):
+        file_names = [self.dump_to_file()]
+
+        return file_names
+
 for container in container_json:
     container_name = container["container_name"]
     database_type = container["database_type"]
     root_password = container["root_password"]
 
-    databases = get_database_list(container_name, database_type, root_password)
+    if database_type in ["mariadb"]:
+        database = Mariadb(
+            container_name=container_name,
+            user="root",
+            password=root_password
+        )
+    elif database_type in ["postgresql"]:
+        database = Postgresql(
+            container_name=container_name,
+            user="postgres",
+        )
 
-    for database in databases:
-        sql_file_name = dump_database_to_sql(container_name, database_type, root_password)
-
-        file_names.append(sql_file_name)
+    file_names.extend(database.dump())
 
 gzip_sql_files(file_names)
