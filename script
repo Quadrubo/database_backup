@@ -22,7 +22,7 @@ file_names = []
 def gzip_sql_files(files):
     output_file_name = datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + "_db_backup.tar.gz"
 
-    command = f"tar --remove-files -czf {OUTPUT_FOLDER}/{output_file_name} " + " ".join(files)
+    command = f"tar --remove-files -czf {OUTPUT_FOLDER}/{output_file_name} -C {TMP_FOLDER} " + " ".join(files)
 
     p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     p.wait()
@@ -58,10 +58,10 @@ class Mariadb(Database):
         for database in self.databases:
             dump_command = f"{self.get_dump_command(database)} > {TMP_FOLDER}/{self.container_name}_{database}.sql"
 
-            sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-            sql_dumper.wait()
+            #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+            #sql_dumper.wait()
 
-            file_names.append(f"{TMP_FOLDER}/{self.container_name}_{database}.sql")
+            file_names.append(f"{self.container_name}_{database}.sql")
 
         return file_names
 
@@ -88,10 +88,10 @@ class Postgresql(Database):
     def dump_to_file(self):
         dump_command = f"{self.get_dump_command()} > {TMP_FOLDER}/{self.container_name}.sql"
 
-        sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-        sql_dumper.wait()
+        #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+        #sql_dumper.wait()
 
-        return f"{TMP_FOLDER}/{self.container_name}.sql"
+        return f"{self.container_name}.sql"
 
     def dump(self):
         file_names = [self.dump_to_file()]
