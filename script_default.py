@@ -75,8 +75,8 @@ class Mariadb(Database):
         for database in self.databases:
             dump_command = f"{self.get_dump_command(database)} > {TMP_FOLDER}/{self.container_name}_{database}.sql"
 
-            #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-            #sql_dumper.wait()
+            sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+            sql_dumper.wait()
 
             file_names.append(f"{self.container_name}_{database}.sql")
 
@@ -105,8 +105,8 @@ class Postgresql(Database):
     def dump_to_file(self):
         dump_command = f"{self.get_dump_command()} > {TMP_FOLDER}/{self.container_name}.sql"
 
-        #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-        #sql_dumper.wait()
+        sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+        sql_dumper.wait()
 
         return f"{self.container_name}.sql"
 
@@ -134,7 +134,7 @@ for container in container_json:
 
     file_names.extend(database.dump())
 
-#gzip_sql_files(file_names)
+gzip_sql_files(file_names)
 
 if ENABLE_NTFY:
     send_ntfy()
