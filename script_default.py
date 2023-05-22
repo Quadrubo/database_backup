@@ -3,10 +3,15 @@ import subprocess
 import os
 import json
 from datetime import datetime
+import requests
 
 JSON_FILE_NAME = "/boot/config/plugins/user.scripts/scripts/database_backup/containers.json"
 TMP_FOLDER = "/boot/config/plugins/user.scripts/scripts/database_backup/tmp"
 OUTPUT_FOLDER = "/mnt/user/backup/database"
+
+ENABLE_NTFY = True
+NTFY_URI = "https://ntfy.domain/topic"
+NTFY_BEARER = "tk_xxxxxxxxxxxxxxxxxxxxxx"
 
 with open(JSON_FILE_NAME, 'r') as f:
     container_json = json.load(f)["containers"]
@@ -28,6 +33,18 @@ def gzip_sql_files(files):
     p.wait()
 
     print(f"Database backup written to \"{OUTPUT_FOLDER}/{output_file_name}\".")
+
+def send_ntfy():
+    container_names = ', '.join(container['container_name'] for container in container_json)
+
+    requests.post(
+        NTFY_URI, 
+        data=f"Containers: {container_names}",
+        headers={
+            "Title": "Database backup successful :)",
+            "Authorization": f"Bearer {NTFY_BEARER}"
+        }
+    )
 
 class Database:
     def __init__(self, container_name) -> None:
@@ -58,8 +75,8 @@ class Mariadb(Database):
         for database in self.databases:
             dump_command = f"{self.get_dump_command(database)} > {TMP_FOLDER}/{self.container_name}_{database}.sql"
 
-            sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-            sql_dumper.wait()
+            #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+            #sql_dumper.wait()
 
             file_names.append(f"{self.container_name}_{database}.sql")
 
@@ -88,8 +105,8 @@ class Postgresql(Database):
     def dump_to_file(self):
         dump_command = f"{self.get_dump_command()} > {TMP_FOLDER}/{self.container_name}.sql"
 
-        sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
-        sql_dumper.wait()
+        #sql_dumper = subprocess.Popen(dump_command, stdout=subprocess.PIPE, shell=True)
+        #sql_dumper.wait()
 
         return f"{self.container_name}.sql"
 
@@ -117,4 +134,7 @@ for container in container_json:
 
     file_names.extend(database.dump())
 
-gzip_sql_files(file_names)
+#gzip_sql_files(file_names)
+
+if ENABLE_NTFY:
+    send_ntfy()
