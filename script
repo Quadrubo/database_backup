@@ -1,17 +1,47 @@
 #!/usr/bin/python3.9
 import subprocess
 import os
+from dotenv import load_dotenv
 import json
 from datetime import datetime
 import requests
 
-JSON_FILE_NAME = "/boot/config/plugins/user.scripts/scripts/database_backup/containers.json"
-TMP_FOLDER = "/boot/config/plugins/user.scripts/scripts/database_backup/tmp"
-OUTPUT_FOLDER = "/mnt/user/backup/database"
+ENV_WORKING = os.getenv("ENV_WORKING") != None
+ENV_FILE_PATH = "/boot/config/plugins/user.scripts/scripts/database_backup/.env"
 
-ENABLE_NTFY = True
-NTFY_URI = "https://ntfy.domain/topic"
-NTFY_BEARER = "tk_xxxxxxxxxxxxxxxxxxxxxx"
+def get_env_var(key):
+    if ENV_WORKING:
+        return os.getenv(key)
+    else:
+        return ENV_VARS[key]
+
+# Load the environment variables manually as a workaround for the Unraid User Scripts plugin
+def load_env_file_without_dotenv(filename):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    env_vars = {}
+
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith('#'):
+            key, value = line.split('=', 1)
+            env_vars[key] = value
+
+    return env_vars
+
+load_dotenv()
+
+if not ENV_WORKING:
+    ENV_VARS = load_env_file_without_dotenv(ENV_FILE_PATH)
+
+JSON_FILE_NAME = get_env_var("JSON_FILE_NAME")
+TMP_FOLDER = get_env_var("TMP_FOLDER")
+OUTPUT_FOLDER = get_env_var("OUTPUT_FOLDER")
+
+ENABLE_NTFY = get_env_var("ENABLE_NTFY").lower() == 'true'
+NTFY_URI = get_env_var("NTFY_URI")
+NTFY_BEARER = get_env_var("NTFY_BEARER")
 
 with open(JSON_FILE_NAME, 'r') as f:
     container_json = json.load(f)["containers"]
@@ -138,3 +168,5 @@ gzip_sql_files(file_names)
 
 if ENABLE_NTFY:
     send_ntfy()
+
+print("Script completed.")

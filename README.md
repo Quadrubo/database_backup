@@ -1,22 +1,23 @@
 # database_backup
 
 This is the script I use to backup my databases running in docker containers on my Unraid server.
+After backup them up to the location specified in the `.env` file, the backup is further processed by [Duplicati](https://github.com/duplicati/duplicati).
 
 ## Usage in the User Scripts plugin
 
 1. Navigate to `/boot/config/plugins/user.scripts/scripts/`
 2. Clone the repository with `git clone https://github.com/Quadrubo/database_backup`
-3. Copy the script so it's recognized by the plugin `cp script_default.py script`
-4. Copy the containers file and edit it to match your system `cp containers.json.example containers.json`
-5. Edit the variables in the first rows of the `script` to match your system.
+3. Copy the environment file and edit it to match your system `cp .env.example .env`
+4. Edit the variable `ENV_FILE_PATH` in the first rows of the `script` to match your newly created `.env` file
+5. Copy the containers file and edit it to match your system `cp containers.json.example containers.json`
+6. Run the script in Unraid under `Settings -> User Scripts`. You can even schedule it to run daily.
 
-## Usage with dotenv
+## General Usage
 
-The User Scripts plugin doesn't support using environment variables.
-This is a guide on how to setup the other version which uses environment variables.
+1. Follow the steps 1 - 5 outlined in [Usage in the User Scripts plugin](#usage-in-the-user-scripts-plugin) but clone the repository to anywhere you like. You can skip step 5 if you know your system supports `.env` file loading.
+2. Run the script using `python ./script`
 
-1. Clone the repository with `git clone https://github.com/Quadrubo/database_backup`
-2. Copy the script so it's recognized by the plugin `cp script_dotenv.py script`
-3. Copy the containers file and edit it to match your system `cp containers.json.example containers.json`
-4. Copy the environment file and edit it to match your system `cp .env.example .env`
-5. Edit the variables in the `.env` to match your system.
+## Notifications
+
+You can use [Ntfy](https://github.com/binwiederhier/ntfy) to get notifications when your script has finished executing. 
+Edit the `ENABLE_NTFY`, `NTFY_URI` and `NTFY_BEARER` variables to enable notifications.
