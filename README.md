@@ -1,5 +1,8 @@
 # database_backup
 
+> [!CAUTION]
+> This project has been superseded by using [borgmatic](https://github.com/borgmatic-collective/borgmatic).
+
 This is the script I use to backup my databases running in docker containers on my Unraid server.
 After backup them up to the location specified in the `.env` file, the backup is further processed by [Duplicati](https://github.com/duplicati/duplicati).
 
@@ -19,5 +22,5 @@ After backup them up to the location specified in the `.env` file, the backup is
 
 ## Notifications
 
-You can use [Ntfy](https://github.com/binwiederhier/ntfy) to get notifications when your script has finished executing. 
+You can use [Ntfy](https://github.com/binwiederhier/ntfy) to get notifications when your script has finished executing.
 Edit the `ENABLE_NTFY`, `NTFY_URI` and `NTFY_BEARER` variables to enable notifications.
